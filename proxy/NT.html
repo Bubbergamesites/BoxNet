@@ -307,31 +307,6 @@
             renderCustom();
             newQuote();
         };
-
-        // Shortcut Redirect Logic
-        $('#shortcuts').onclick = e => {
-            const shortcut = e.target.closest('.shortcut[data-url]');
-            const addBtn = e.target.closest('#addShortcut');
-
-            if (shortcut) {
-                e.preventDefault();
-                nav(shortcut.dataset.url);
-            } else if (addBtn) {
-                const name = prompt("Shortcut name:");
-                if (!name) return;
-                let url = prompt("URL:");
-                if (!url) return;
-                if (!url.startsWith('http')) url = 'https://' + url;
-
-                const shortcuts = JSON.parse(localStorage.getItem('shortcuts') || '[]');
-                shortcuts.push({
-                    name,
-                    url
-                });
-                localStorage.setItem('shortcuts', JSON.stringify(shortcuts));
-                renderCustom();
-            }
-        }
     </script>
 </body>
 
