@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoxNet | 404 - Lost Package</title>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cardboard: #d9b382;
+            --cardboard-dark: #a68a5b;
+            --ink: #3d2b1f;
+            --tape-clear: rgba(255, 255, 255, 0.2);
+            --error-red: #8b0000;
+        }
+
+        body {
+            background-color: #251d16;
+            color: var(--ink);
+            font-family: 'Courier Prime', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* The Misplaced Box */
+        .error-container {
+            background-color: var(--cardboard);
+            width: 90%;
+            max-width: 600px;
+            padding: 50px;
+            position: relative;
+            box-shadow: 20px 20px 0px rgba(0,0,0,0.5);
+            border: 3px solid var(--ink);
+            text-align: center;
+            /* Shaky animation to show it's "broken" */
+            animation: tremor 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes tremor {
+            from { transform: rotate(-0.5deg); }
+            to { transform: rotate(0.5deg); }
+        }
+
+        /* Stamp Style Header */
+        .status-stamp {
+            border: 5px double var(--error-red);
+            color: var(--error-red);
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 3rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            transform: rotate(-5deg);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        p {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+
+        /* Action Buttons as Shipping Labels */
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .label-btn {
+            background: #fff;
+            color: #000;
+            border: 2px solid var(--ink);
+            padding: 12px 30px;
+            text-decoration: none;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            transition: 0.2s;
+            cursor: pointer;
+            width: 250px;
+        }
+
+        .label-btn:hover {
+            background: var(--ink);
+            color: var(--cardboard);
+            transform: scale(1.05);
+        }
+
+        /* Decorative Barcode */
+        .barcode-section {
+            margin-top: 40px;
+            border-top: 2px dashed var(--ink);
+            padding-top: 20px;
+        }
+
+        .barcode {
+            font-size: 2.5rem;
+            letter-spacing: -3px;
+        }
+
+        .tracking-num {
+            font-size: 0.7rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        /* Duct Tape decoration */
+        .tape-strip {
+            position: absolute;
+            top: -20px;
+            left: 20%;
+            width: 150px;
+            height: 40px;
+            background: var(--tape-clear);
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(2px);
+            transform: rotate(-15deg);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="error-container">
+        <div class="tape-strip"></div>
+        
+        <div class="status-stamp">MISSING</div>
+        
+        <h1>Package Not Found</h1>
+        <p>The manifest points to a location that doesn't exist. This shipment may have been intercepted or discarded.</p>
+
+        <div class="actions">
+            <button onclick="history.back()" class="label-btn">Trace Back (Previous Page)</button>
+            <a href="index.html" class="label-btn">Distribution Center (Home)</a>
+        </div>
+
+        <div class="barcode-section">
+            <div class="barcode">|| | ||| | || || | || | | || |</div>
+            <div class="tracking-num">ERR-404-CARGO-UNRESOLVED</div>
+        </div>
+    </div>
+
+</body>
+</html>
