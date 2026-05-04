@@ -4,126 +4,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BoxNet | Unblocked</title>
+    <title>BoxNet | Shipping Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --cardboard-light: #d9b382;
             --cardboard-mid: #c6a670;
             --cardboard-dark: #a68a5b;
-            --tape-clear: rgba(255, 255, 255, 0.2);
+            --tape-clear: rgba(255, 255, 255, 0.25);
             --ink: #3d2b1f;
+            --label-white: #fdfdfd;
         }
 
         body {
-            background-color: #2c2c2c;
+            background-color: #251d16;
+            /* Wood floor / Warehouse floor texture */
+            background-image: repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(0,0,0,0.1) 50px, rgba(0,0,0,0.1) 51px);
             color: var(--ink);
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Courier Prime', monospace;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            overflow: hidden;
         }
 
-        /* The Main Box Container */
+        /* The Main Box */
         .box-container {
             background-color: var(--cardboard-light);
             width: 90%;
-            max-width: 800px;
-            padding: 40px;
+            max-width: 900px;
+            padding: 60px 40px;
             position: relative;
-            box-shadow: 20px 20px 0px var(--cardboard-dark);
+            box-shadow: 30px 30px 0px rgba(0,0,0,0.4);
             border: 2px solid var(--cardboard-dark);
+            /* Rough cut cardboard effect */
+            clip-path: polygon(0% 2%, 100% 0%, 99% 98%, 1% 100%);
         }
 
-        /* Cardboard Flap Effect */
+        /* The Center Tape Seam */
         .box-container::before {
             content: "";
             position: absolute;
             top: 0;
-            left: 50%;
-            width: 2px;
+            left: calc(50% - 30px);
+            width: 60px;
             height: 100%;
-            background: var(--cardboard-dark);
-            opacity: 0.5;
+            background: var(--tape-clear);
+            border-left: 1px solid rgba(255,255,255,0.3);
+            border-right: 1px solid rgba(255,255,255,0.3);
+            z-index: 10;
+            pointer-events: none;
         }
 
         header {
             text-align: center;
-            border-bottom: 3px dashed var(--ink);
-            margin-bottom: 30px;
-            padding-bottom: 10px;
+            margin-bottom: 50px;
+            position: relative;
+            z-index: 5;
         }
 
-        h1 {
-            font-size: 3rem;
+        header h1 {
+            font-size: 5rem;
             margin: 0;
             text-transform: uppercase;
-            letter-spacing: 5px;
+            letter-spacing: -4px;
+            line-height: 0.8;
+            font-weight: 700;
         }
 
         .tagline {
             font-weight: bold;
-            font-size: 0.9rem;
+            border: 2px solid var(--ink);
+            display: inline-block;
+            padding: 5px 15px;
+            margin-top: 15px;
+            transform: rotate(-2deg);
+            background: rgba(0,0,0,0.05);
         }
 
-        /* Navigation Grid */
+        /* Navigation as Labels */
         .nav-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 25px;
+            position: relative;
+            z-index: 5;
         }
 
         .nav-card {
-            background-color: var(--cardboard-mid);
-            border: 2px solid var(--ink);
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s, background-color 0.2s;
+            background-color: var(--label-white);
+            padding: 25px 15px;
             text-decoration: none;
-            color: var(--ink);
-            font-weight: bold;
+            color: #000;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            border: 1px solid #ccc;
+            transition: all 0.2s ease;
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.1);
             position: relative;
         }
 
-        /* Packing Tape Aesthetic */
+        /* Tiny barcode on every label */
         .nav-card::after {
-            content: "";
+            content: "||||||||||||||||";
+            font-size: 8px;
             position: absolute;
-            top: -5px;
-            width: 40%;
-            height: 20px;
-            background: var(--tape-clear);
-            backdrop-filter: blur(2px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            bottom: 5px;
+            right: 5px;
+            opacity: 0.5;
         }
 
         .nav-card:hover {
-            transform: translateY(-5px);
-            background-color: var(--cardboard-light);
+            transform: scale(1.05) rotate(1deg);
+            box-shadow: 10px 10px 0px var(--ink);
+            z-index: 20;
         }
 
         .icon {
-            font-size: 2.5rem;
+            font-size: 3rem;
             margin-bottom: 10px;
+            filter: grayscale(1); /* Keeps it looking like ink printing */
+        }
+
+        .nav-card span {
+            font-weight: 900;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
         }
 
         footer {
-            margin-top: 40px;
+            margin-top: 60px;
             text-align: center;
-            font-size: 0.8rem;
-            opacity: 0.8;
+            border-top: 2px dashed var(--ink);
+            padding-top: 20px;
         }
 
         .barcode {
-            font-size: 1.5rem;
+            font-size: 2rem;
             letter-spacing: -2px;
-            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+
+        .stamp {
+            position: absolute;
+            bottom: 20px;
+            right: 40px;
+            border: 4px double var(--ink);
+            padding: 10px;
+            opacity: 0.3;
+            font-weight: bold;
+            transform: rotate(-15deg);
+            pointer-events: none;
         }
     </style>
 </head>
@@ -131,38 +165,39 @@
 <body>
 
     <div class="box-container">
+        <div class="stamp">INSPECTED BY BN-7</div>
+        
         <header>
             <h1>BoxNet</h1>
             <p class="tagline">FRAGILE: HANDLE WITH ENTERTAINMENT</p>
         </header>
 
         <main class="nav-grid">
-            <a href="/games" class="nav-card">
+            <a href="games" class="nav-card">
                 <div class="icon">🕹️</div>
                 <span>GAMES</span>
             </a>
 
-            <a href="/proxy" class="nav-card">
+            <a href="proxy" class="nav-card">
                 <div class="icon">🌐</div>
-                <span>WEB PROXY</span>
+                <span>PROXY</span>
             </a>
 
-            <a href="/apps" class="nav-card">
+            <a href="apps" class="nav-card">
                 <div class="icon">📱</div>
                 <span>APPS</span>
             </a>
 
-            <a href="/ai" class="nav-card">
+            <a href="ai" class="nav-card">
                 <div class="icon">🤖</div>
                 <span>AI CHAT</span>
             </a>
         </main>
 
         <footer>
-            <div class="barcode-label">
-                <div class="barcode"></div>
-            </div>
-            <p>EST. 2024 | SHIPMENT #834-UN8L0CK3D</p>
+            <div class="barcode">|| |||| || | ||| || ||| |</div>
+            <p style="font-size: 10px; font-weight: bold;">MANIFEST: 4920-BOX-NET-2024</p>
+            <p style="font-size: 12px; margin-top: 10px; opacity: 0.6;">EST. 2024 &bull; BOXNET LOGISTICS</p>
         </footer>
     </div>
 
