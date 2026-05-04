@@ -340,7 +340,7 @@
             const modal = document.getElementById('gameModal');
             const frame = document.getElementById('gameFrame');
             const title = document.getElementById('modalTitle');
-            activeGameUrl = `/Nexus-Proxy/embed#https://${encodeURIComponent(file)}`;
+            activeGameUrl = `/proxy/embed#https://${encodeURIComponent(file)}`;
             title.textContent = `APP: ${file.toUpperCase()}`;
             frame.src = activeGameUrl;
             modal.style.display = 'flex';
