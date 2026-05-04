@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <title>BoxNet | AI Chat</title>
+    <style>
+        :root {
+            /* Cardboard Palette */
+            --cardboard-light: #d9b382;
+            --cardboard-mid: #c6a670;
+            --cardboard-dark: #a68a5b;
+            --ink: #3d2b1f;
+            --tape-clear: rgba(255, 255, 255, 0.2);
+            
+            --text-color: var(--ink);
+            --container-bg: #e6c598;
+            --body-bg: #b5956a;
+            --accent-blue: #2d5a88;
+            --sidebar-bg: var(--cardboard-mid);
+            --glass-border: var(--cardboard-dark);
+        }
+
+        [data-theme="dark"] {
+            --text-color: #f2e6d5;
+            --container-bg: #4a3728;
+            --body-bg: #2c1f16;
+            --sidebar-bg: #3d2b1f;
+            --accent-blue: #6495ed;
+            --glass-border: #1a110a;
+        }
+
+        * { box-sizing: border-box; }
+        body, html { 
+            margin: 0; padding: 0; width: 100vw; height: 100vh; 
+            font-family: 'Courier Prime', monospace; 
+            background: var(--body-bg); 
+            color: var(--text-color); 
+            display: flex; overflow: hidden; transition: 0.4s; 
+        }
+
+        /* Sidebar - The Packing Slip */
+        .sidebar { 
+            width: 300px; 
+            background: var(--sidebar-bg); 
+            border-right: 4px double var(--ink); 
+            display: flex; flex-direction: column; 
+            padding: 25px; transition: margin-left 0.3s ease; 
+            z-index: 100; flex-shrink: 0; 
+            position: relative;
+        }
+        
+        /* Box Center Fold Line */
+        .sidebar::after {
+            content: ""; position: absolute; right: 0; top: 0; bottom: 0;
+            width: 2px; background: rgba(0,0,0,0.1);
+        }
+
+        .sidebar.collapsed { margin-left: -300px; }
+        
+        .chat-list { 
+            flex-grow: 1; overflow-y: auto; display: flex; 
+            flex-direction: column; gap: 10px; padding-right: 8px;
+        }
+
+        /* Custom Scrollbar (Ink style) */
+        .chat-list::-webkit-scrollbar { width: 6px; }
+        .chat-list::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 0px; }
+
+        .brand { 
+            font-size: 2rem; font-weight: 900; margin-bottom: 30px; 
+            text-align: center; border-bottom: 2px solid var(--ink);
+            padding-bottom: 10px;
+        }
+        
+        .sidebar-btn { 
+            padding: 12px; border: 2px solid var(--ink); 
+            background: var(--tape-clear); color: var(--ink); 
+            font-weight: bold; cursor: pointer; width: 100%; 
+            display: flex; align-items: center; justify-content: center; 
+            gap: 10px; transition: 0.2s; font-family: 'Courier Prime', monospace;
+        }
+        .new-chat { margin-bottom: 20px; box-shadow: 3px 3px 0px var(--ink); }
+        .new-chat:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0px var(--ink); }
+        
+        .clear-all { margin-top: 20px; border-color: #8b0000; color: #8b0000; font-size: 0.8rem; }
+
+        .chat-item { 
+            padding: 10px; background: rgba(0,0,0,0.05); border: 1px dashed var(--ink);
+            font-size: 0.9rem; cursor: pointer; white-space: nowrap; 
+            overflow: hidden; text-overflow: ellipsis; 
+        }
+        .chat-item:hover { background: var(--tape-clear); border-style: solid; }
+
+        /* Main Content */
+        .main { flex-grow: 1; height: 100vh; display: flex; flex-direction: column; position: relative; min-width: 0; }
+        
+        .nav { 
+            height: 70px; padding: 0 30px; display: flex; justify-content: space-between; 
+            align-items: center; border-bottom: 2px solid var(--ink); 
+            background: var(--cardboard-light);
+        }
+
+        .stage { 
+            flex-grow: 1; padding: 40px 10%; overflow-y: auto; 
+            display: flex; flex-direction: column; gap: 20px; 
+            background-image: radial-gradient(var(--cardboard-mid) 1px, transparent 1px);
+            background-size: 20px 20px; /* Grid paper effect */
+        }
+
+        /* Messages as Labels */
+        .msg { 
+            max-width: 80%; padding: 20px; line-height: 1.6; 
+            word-wrap: break-word; white-space: pre-wrap;
+            border: 2px solid var(--ink);
+            position: relative;
+        }
+        .user-msg { 
+            align-self: flex-end; background: var(--accent-blue); color: white; 
+            box-shadow: -5px 5px 0px var(--ink);
+        }
+        .ai-msg { 
+            align-self: flex-start; background: #fffdf0; color: #000;
+            box-shadow: 5px 5px 0px var(--cardboard-dark);
+        }
+        
+        pre { background: #222; color: #0f0; padding: 15px; border-radius: 4px; overflow-x: auto; }
+
+        .footer { padding: 20px 10% 30px; background: var(--body-bg); }
+        
+        .input-wrap { 
+            background: #fff; border: 3px solid var(--ink); 
+            padding: 10px 25px; display: flex; align-items: center; 
+            box-shadow: 5px 5px 0px var(--ink);
+        }
+        .input-wrap input { 
+            flex-grow: 1; background: transparent; border: none; 
+            color: #000; padding: 10px; font-size: 1.1rem; outline: none; 
+            font-family: 'Courier Prime', monospace;
+        }
+        .btn-send { background: var(--ink); color: #fff; width: 45px; height: 45px; border: none; cursor: pointer; }
+
+        /* THE WHITE BARCODE STAMP */
+        .barcode-label {
+            background-color: #ffffff;
+            display: inline-block;
+            padding: 8px 15px;
+            border: 2px solid #000;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .barcode {
+            font-size: 1.2rem;
+            letter-spacing: -1px;
+            color: #000;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="brand">BOXNET <span style="font-weight: 400; opacity: 0.6; font-size: 1rem;"><br>CARGO AI</span></div>
+        <button class="sidebar-btn new-chat" onclick="startNewChat()"><i class="ri-box-3-line"></i> NEW SHIPMENT</button>
+        
+        <div class="chat-list" id="history"></div>
+
+        <div style="text-align: center;">
+            <button class="sidebar-btn clear-all" onclick="clearAllChats()"><i class="ri-delete-bin-line"></i> VOID ALL</button>
+            
+            <div class="barcode-label">
+                <div class="barcode">|| ||| | ||| | || || |</div>
+                <div style="font-size: 0.6rem; color: #000; font-weight: bold;">BN-9928-AI</div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="nav">
+            <div style="display:flex; align-items:center; gap:20px;">
+                <button onclick="toggleSidebar()" style="background:none; border:none; color:var(--text-color); font-size:1.5rem; cursor:pointer;"><i class="ri-menu-unfold-line"></i></button>
+                <select id="model" style="padding:8px 15px; background:#fff; color:#000; border:2px solid var(--ink); font-weight:bold; font-family: 'Courier Prime';">
+                    <option value="openai">GPT-4 Omni</option>
+                    <option value="polly">Polly (beta)</option>
+                    <option value="gemini-fast">Gemini</option>
+                    <option value="qwen-coder">Qwen Coder</option>
+                    <option value="gemini-search">Gemini Search</option>
+                    <option value="mistral">Mistral</option>
+                </select>
+            </div>
+        </header>
+
+        <div class="stage" id="stage">
+            <div class="msg ai-msg">
+<strong>BOXNET LOGISTICS AI</strong><br>
+Status: Operational<br>
+--------------------------<br>
+Welcome to the internal manifest chat. <br>
+- Use /image for visual generation.<br>
+- Use the sidebar to track previous shipments.<br>
+Ready for input...
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="input-wrap">
+                <input type="text" id="input" placeholder="Enter manifest data..." autocomplete="off">
+                <button class="btn-send" onclick="send()"><i class="ri-send-plane-2-line"></i></button>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        // ... (All your original JavaScript logic remains here, unchanged so the AI still works) ...
+        const stage = document.getElementById('stage');
+        const userInput = document.getElementById('input');
+        const sidebar = document.getElementById('sidebar');
+        const historyDiv = document.getElementById('history');
+        
+        const API_KEY = "sk_TkHKcauHNG90SnfTJWJ1iNzIANHKaWf6"; 
+
+        let chatId = Date.now();
+        let chats = JSON.parse(localStorage.getItem('netlii_pro_vault')) || {};
+
+        function toggleSidebar() { sidebar.classList.toggle('collapsed'); }
+
+        function formatContent(text) {
+            let escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const codeRegex = /```([\s\S]*?)```/g;
+            return escaped.replace(codeRegex, (match, code) => {
+                return `<pre><code>${code.trim()}</code></pre>`;
+            });
+        }
+
+        async function send() {
+            const val = userInput.value.trim();
+            if(!val) return;
+            addMsg('user', val);
+            userInput.value = '';
+
+            const m = document.getElementById('model').value;
+            const typing = showTyping();
+            try {
+                const res = await fetch(`https://gen.pollinations.ai/text/${encodeURIComponent(val)}?model=${m}&key=${API_KEY}`);
+                const text = await res.text();
+                typing.remove();
+                addMsg('ai', text);
+            } catch(e) { 
+                typing.remove(); 
+                addMsg('ai', 'Error: Shipment failed to process.'); 
+            }
+        }
+
+        function addMsg(role, content, isImg=false) {
+            const div = document.createElement('div');
+            div.className = `msg ${role}-msg`;
+            div.innerHTML = formatContent(content);
+            stage.appendChild(div);
+            stage.scrollTop = stage.scrollHeight;
+
+            if(!chats[chatId]) chats[chatId] = [];
+            chats[chatId].push({role, content, isImg});
+            localStorage.setItem('netlii_pro_vault', JSON.stringify(chats));
+            updateHistory();
+        }
+
+        function showTyping() {
+            const div = document.createElement('div');
+            div.className = 'msg ai-msg';
+            div.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> SCANNING...';
+            stage.appendChild(div);
+            stage.scrollTop = stage.scrollHeight;
+            return div;
+        }
+
+        function updateHistory() {
+            historyDiv.innerHTML = '';
+            Object.keys(chats).sort((a,b)=>b-a).forEach(id => {
+                const item = document.createElement('div');
+                item.className = 'chat-item';
+                item.innerText = chats[id][0]?.content.substring(0,25) || 'Empty Parcel';
+                item.onclick = () => loadChat(id);
+                historyDiv.appendChild(item);
+            });
+        }
+
+        function clearAllChats() {
+            if(confirm("Incinerate all previous manifests?")) {
+                chats = {};
+                localStorage.removeItem('netlii_pro_vault');
+                updateHistory();
+                startNewChat();
+            }
+        }
+
+        function loadChat(id) {
+            chatId = id;
+            stage.innerHTML = '';
+            chats[id].forEach(m => {
+                const div = document.createElement('div');
+                div.className = `msg ${m.role}-msg`;
+                div.innerHTML = formatContent(m.content);
+                stage.appendChild(div);
+            });
+            stage.scrollTop = stage.scrollHeight;
+        }
+
+        function startNewChat() {
+            chatId = Date.now();
+            stage.innerHTML = '<div class="msg ai-msg">New shipment session initiated.</div>';
+            updateHistory();
+        }
+
+        userInput.onkeypress = (e) => { if(e.key==='Enter') send(); };
+        updateHistory();
+    </script>
+</body>
+</html>
