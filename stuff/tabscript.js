@@ -93,7 +93,7 @@
     });
 
     // General activity listeners for keyboard or scrolling
-    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(name => {
+    ['mousemove', 'keypress', 'scroll'].forEach(name => {
         window.addEventListener(name, () => {
             if (state.isHidden) show();
             else resetTimer();
