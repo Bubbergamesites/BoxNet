@@ -2,7 +2,6 @@
     const CONFIG = {
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        // Using a high-quality Google Search screenshot placeholder
         fakeImgUrl: "/stuff/google.png", 
         idleTime: 5000 
     };
@@ -26,6 +25,7 @@
 
         if (type === 'SAFE') {
             document.title = state.originalTitle;
+            // Force browser to refresh favicon by adding a timestamp
             newLink.href = state.originalIcon + "?v=" + Date.now();
         } else {
             document.title = CONFIG.fakeTitle;
@@ -39,9 +39,8 @@
         state.isHidden = true;
         setTab('FAKE');
 
-        // Create overlay
         const img = document.createElement('img');
-        img.id = "boss-overlay";
+        img.id = "emergency-overlay"; // Consistent ID
         img.src = CONFIG.fakeImgUrl;
         img.style.cssText = `
             position: fixed;
@@ -52,10 +51,15 @@
             object-fit: cover;
             z-index: 2147483647;
             background: white;
+            display: block;
+            cursor: none; /* Hides the mouse while the 'boss' image is up */
         `;
         
+        // Add specific listener to the image itself for instant removal
+        img.addEventListener('mouseenter', show);
+        img.addEventListener('mousemove', show);
+
         document.body.appendChild(img);
-        isHidden = true;
     }
 
     function show() {
@@ -64,22 +68,32 @@
         
         setTab('SAFE');
         
-        const cover = document.getElementById("boss-overlay");
-        if (cover) cover.remove();
+        // Match the ID exactly to ensure it is removed
+        const cover = document.getElementById("emergency-overlay");
+        if (cover) {
+            cover.remove();
+        }
         
         resetTimer();
     }
 
     function resetTimer() {
         clearTimeout(state.idleTimer);
-        if (!state.isHidden) state.idleTimer = setTimeout(hide, CONFIG.idleTime);
+        if (!state.isHidden) {
+            state.idleTimer = setTimeout(hide, CONFIG.idleTime);
+        }
     }
 
     document.addEventListener("visibilitychange", () => {
-        document.hidden ? hide() : show();
+        if (document.hidden) {
+            hide();
+        } else {
+            show();
+        }
     });
 
-    ['mousedown', 'keydown', 'mousemove', 'scroll'].forEach(name => {
+    // General activity listeners for keyboard or scrolling
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(name => {
         window.addEventListener(name, () => {
             if (state.isHidden) show();
             else resetTimer();
