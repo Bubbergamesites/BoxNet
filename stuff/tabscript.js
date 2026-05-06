@@ -4,7 +4,7 @@
         originalFavicon: document.querySelector("link[rel*='icon']")?.href || "",
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        fakeImgUrl: "/google.png", 
+        fakeImgUrl: "/stuff/google.png", 
         idleTime: 10000 
     };
 
