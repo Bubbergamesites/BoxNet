@@ -1,10 +1,13 @@
 (function() {
+    // --- CONFIGURATION ---
     const CONFIG = {
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
+        // Suggestion: Host this image on your own server for fastest loading
         fakeImgUrl: "/stuff/google.png", 
-        idleTime: 50000, // Reduced to 5 seconds for faster testing
+        idleTime: 10000, // 10 seconds
         
+        // Storage for original state
         originalTitle: document.title,
         originalIcons: [] 
     };
@@ -12,76 +15,94 @@
     let idleTimer;
     let isHidden = false;
 
-    // Capture every favicon tag on the page right when it loads
+    // Save all current favicons so we can restore them later
     function saveOriginalIcons() {
         const icons = document.querySelectorAll("link[rel*='icon']");
         icons.forEach(icon => {
             CONFIG.originalIcons.push({
                 rel: icon.rel,
                 href: icon.href,
+                sizes: icon.sizes.value,
                 type: icon.type
             });
         });
-        console.log("Original icons saved:", CONFIG.originalIcons.length);
     }
 
-    function updateFavicon(url, isRestoring = false) {
-        // 1. Remove ALL existing icon tags
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+    // Completely replace all icon tags in the <head>
+    function updateAllIcons(newUrl) {
+        // 1. Remove every existing icon tag
+        const existingIcons = document.querySelectorAll("link[rel*='icon']");
+        existingIcons.forEach(el => el.remove());
 
-        // 2. If restoring, loop through saved icons; otherwise, just add Google
-        if (isRestoring) {
-            CONFIG.originalIcons.forEach(icon => {
-                const link = document.createElement('link');
-                link.rel = icon.rel;
-                // Add ?v=restore to force the browser to refresh the image
-                link.href = icon.href + (icon.href.includes('?') ? '&' : '?') + "v=restore";
-                if (icon.type) link.type = icon.type;
-                document.head.appendChild(link);
-            });
-            console.log("Favicon restored to original.");
-        } else {
+        // 2. Create the new "Fake" icon
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/x-icon';
+        // Adding a timestamp ?v= forces the browser to refresh the cache
+        link.href = newUrl + "?v=" + Date.now();
+        document.getElementsByTagName('head')[0].appendChild(link);
+    }
+
+    function restoreOriginalIcons() {
+        const existingIcons = document.querySelectorAll("link[rel*='icon']");
+        existingIcons.forEach(el => el.remove());
+
+        CONFIG.originalIcons.forEach(iconData => {
             const link = document.createElement('link');
-            link.rel = 'icon';
-            link.href = url + "?v=" + Date.now();
-            document.head.appendChild(link);
-            console.log("Favicon changed to Google.");
-        }
+            link.rel = iconData.rel;
+            link.href = iconData.href;
+            if (iconData.sizes) link.sizes = iconData.sizes;
+            if (iconData.type) link.type = iconData.type;
+            document.getElementsByTagName('head')[0].appendChild(link);
+        });
     }
 
     function hideEvidence() {
         if (isHidden) return;
-        isHidden = true;
+        
         document.title = CONFIG.fakeTitle;
-        updateFavicon(CONFIG.fakeFavicon);
+        updateAllIcons(CONFIG.fakeFavicon);
 
+        // Create the full-screen image overlay
         const img = document.createElement('img');
         img.id = "emergency-overlay";
         img.src = CONFIG.fakeImgUrl;
-        img.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; object-fit:cover; z-index:2147483647; background:white;";
+        img.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 2147483647;
+            background: white;
+        `;
+        
         document.body.appendChild(img);
+        isHidden = true;
     }
 
     function restorePage() {
         if (!isHidden) return;
-        isHidden = false;
-        
-        console.log("Activity detected! Switching back...");
+
         document.title = CONFIG.originalTitle;
-        updateFavicon(null, true); // The 'true' tells it to use the saved icons
+        restoreOriginalIcons();
 
         const img = document.getElementById('emergency-overlay');
         if (img) img.remove();
-        
+
+        isHidden = false;
         resetTimer();
     }
 
     function resetTimer() {
         clearTimeout(idleTimer);
-        if (!isHidden) idleTimer = setTimeout(hideEvidence, CONFIG.idleTime);
+        if (!isHidden) {
+            idleTimer = setTimeout(hideEvidence, CONFIG.idleTime);
+        }
     }
 
-    // Listen for any movement
+    // Activity Listeners
     ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
         document.addEventListener(evt, () => {
             if (isHidden) restorePage();
@@ -89,6 +110,12 @@
         }, true);
     });
 
+    // Tab Switch Listener
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) hideEvidence();
+    });
+
+    // Initialize
     saveOriginalIcons();
     resetTimer();
 })();
