@@ -41,7 +41,7 @@
 
         // Create overlay
         const img = document.createElement('img');
-        img.id = "emergency-overlay";
+        img.id = "boss-overlay";
         img.src = CONFIG.fakeImgUrl;
         img.style.cssText = `
             position: fixed;
