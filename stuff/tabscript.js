@@ -2,57 +2,55 @@
     const CONFIG = {
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        fakeImgUrl: "/stuff/google.png", 
+        fakeImgUrl: "/stuff/google.png", // Your "Boss" image
         idleTime: 5000 
     };
 
     let state = {
         isHidden: false,
         idleTimer: null,
-        originalTitle: document.title,
-        originalIcons: []
+        // This will store your actual icon path (e.g., /favicon.ico)
+        originalIcon: "" 
     };
 
-    // 1. Capture original icons on load
-    const saveIcons = () => {
-        state.originalIcons = [];
-        document.querySelectorAll("link[rel*='icon']").forEach(link => {
-            state.originalIcons.push({
-                rel: link.rel,
-                href: link.href
-            });
-        });
+    // 1. Find your actual favicon on load
+    const findIcon = () => {
+        const link = document.querySelector("link[rel*='icon']");
+        state.originalIcon = link ? link.href : "/favicon.ico";
+        state.originalTitle = document.title;
     };
 
-    // 2. The Forced Icon Update
-    function updateFavicon(isRestoring = false) {
-        // Remove ALL icon tags
+    // 2. The Switcher Function
+    function setTab(type) {
+        // Remove ALL existing icon tags to clear the deck
         document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
 
-        if (isRestoring) {
-            state.originalIcons.forEach(icon => {
-                const link = document.createElement('link');
-                link.rel = icon.rel;
-                // The random number (?v=) is the only way to break the browser cache
-                link.href = icon.href + (icon.href.includes('?') ? '&' : '?') + "v=" + Math.random();
-                document.head.appendChild(link);
-            });
+        const newLink = document.createElement('link');
+        newLink.rel = 'icon';
+
+        if (type === 'SAFE') {
+            // RESTORE ORIGINAL
+            document.title = state.originalTitle;
+            // The ?v=Date.now() is the "Punch" that forces the browser to change it back
+            newLink.href = state.originalIcon + "?v=" + Date.now();
+            console.log("Back to normal");
         } else {
-            const link = document.createElement('link');
-            link.rel = 'icon';
-            link.href = CONFIG.fakeFavicon;
-            document.head.appendChild(link);
+            // GO TO GOOGLE
+            document.title = CONFIG.fakeTitle;
+            newLink.href = CONFIG.fakeFavicon + "?v=" + Date.now();
+            console.log("Hidden mode active");
         }
+
+        document.head.appendChild(newLink);
     }
 
     function hide() {
         if (state.isHidden) return;
         state.isHidden = true;
-        document.title = CONFIG.fakeTitle;
-        updateFavicon(false);
+        setTab('FAKE');
 
         const cover = document.createElement('div');
-        cover.id = "boss-key-overlay";
+        cover.id = "boss-overlay";
         cover.style.cssText = `
             position: fixed !important; top: 0 !important; left: 0 !important;
             width: 100vw !important; height: 100vh !important;
@@ -66,10 +64,9 @@
         if (!state.isHidden) return;
         state.isHidden = false;
         
-        document.title = state.originalTitle;
-        updateFavicon(true);
+        setTab('SAFE');
         
-        const cover = document.getElementById("boss-key-overlay");
+        const cover = document.getElementById("boss-overlay");
         if (cover) cover.remove();
         
         resetTimer();
@@ -80,25 +77,23 @@
         if (!state.isHidden) state.idleTimer = setTimeout(hide, CONFIG.idleTime);
     }
 
-    // TRIGGER ON TAB REVISIT
+    // LISTENER 1: Watch for tab switching
     document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) {
-            // User just clicked back onto this tab
-            show();
-        } else {
-            // User just left this tab
+        if (document.hidden) {
             hide();
+        } else {
+            show();
         }
     });
 
-    // TRIGGER ON MOUSE/KEYBOARD
-    ['mousedown', 'keydown', 'mousemove'].forEach(name => {
+    // LISTENER 2: Watch for mouse/keyboard
+    ['mousedown', 'keydown', 'mousemove', 'scroll'].forEach(name => {
         window.addEventListener(name, () => {
             if (state.isHidden) show();
             else resetTimer();
         }, { capture: true, passive: true });
     });
 
-    saveIcons();
+    findIcon();
     resetTimer();
 })();
