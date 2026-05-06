@@ -40,30 +40,22 @@
         setTab('FAKE');
 
         // Create overlay
-        const cover = document.createElement('div');
-        cover.id = "boss-overlay";
-        
-        // Use !important on every single property
-        cover.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            background-color: white !important;
-            background-image: url('${CONFIG.fakeImgUrl}') !important;
-            background-size: cover !important;
-            background-position: center !important;
-            background-repeat: no-repeat !important;
-            z-index: 2147483647 !important;
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
+        const img = document.createElement('img');
+        img.id = "emergency-overlay";
+        img.src = CONFIG.fakeImgUrl;
+        img.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 2147483647;
+            background: white;
         `;
         
-        // Append to documentElement (HTML) instead of body to bypass body restrictions
-        document.documentElement.appendChild(cover);
-        console.log("Overlay created with image: " + CONFIG.fakeImgUrl);
+        document.body.appendChild(img);
+        isHidden = true;
     }
 
     function show() {
