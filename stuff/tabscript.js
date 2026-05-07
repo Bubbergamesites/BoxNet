@@ -1,103 +1,115 @@
 (function() {
+    // --- CONFIGURATION ---
     const CONFIG = {
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        fakeImgUrl: "/stuff/google.png", 
-        idleTime: 5000 
+        // Use the absolute path or a full URL to ensure it loads
+        fakeImgUrl: window.location.origin + "/stuff/google.png", 
+        idleTime: 10000 
     };
 
-    let state = {
-        isHidden: false,
-        idleTimer: null,
-        originalIcon: "",
-        originalTitle: document.title
-    };
+    let idleTimer;
+    let isHidden = false;
+    let originalTitle = document.title;
+    let originalIcons = [];
 
-    const findIcon = () => {
-        const link = document.querySelector("link[rel*='icon']");
-        state.originalIcon = link ? link.href : window.location.origin + "/favicon.ico";
-    };
-
-    function setTab(type) {
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-        const newLink = document.createElement('link');
-        newLink.rel = 'icon';
-
-        if (type === 'SAFE') {
-            document.title = state.originalTitle;
-            // Force browser to refresh favicon by adding a timestamp
-            newLink.href = state.originalIcon + "?v=" + Date.now();
-        } else {
-            document.title = CONFIG.fakeTitle;
-            newLink.href = CONFIG.fakeFavicon;
-        }
-        document.head.appendChild(newLink);
+    function saveOriginalIcons() {
+        const icons = document.querySelectorAll("link[rel*='icon']");
+        icons.forEach(icon => {
+            originalIcons.push({
+                rel: icon.rel,
+                href: icon.href,
+                sizes: icon.sizes.value,
+                type: icon.type
+            });
+        });
     }
 
-    function hide() {
-        if (state.isHidden) return;
-        state.isHidden = true;
-        setTab('FAKE');
+    function updateIcons(url, forceRefresh = false) {
+        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.href = url + (forceRefresh ? "?v=" + Date.now() : "");
+        document.head.appendChild(link);
+    }
+
+    function restoreIcons() {
+        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+        originalIcons.forEach(iconData => {
+            const link = document.createElement('link');
+            link.rel = iconData.rel;
+            link.href = iconData.href + "?v=" + Date.now();
+            if (iconData.sizes) link.sizes = iconData.sizes;
+            if (iconData.type) link.type = iconData.type;
+            document.head.appendChild(link);
+        });
+    }
+
+    function hideEvidence() {
+        if (isHidden) return;
+        isHidden = true;
+        
+        document.title = CONFIG.fakeTitle;
+        updateIcons(CONFIG.fakeFavicon);
 
         const img = document.createElement('img');
-        img.id = "emergency-overlay"; // Consistent ID
+        img.id = "emergency-overlay";
         img.src = CONFIG.fakeImgUrl;
         img.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            z-index: 2147483647;
-            background: white;
-            display: block;
-            cursor: none; /* Hides the mouse while the 'boss' image is up */
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: cover !important;
+            z-index: 2147483647 !important;
+            background: white !important;
         `;
         
-        img.addEventListener('mouseenter', show);
-        img.addEventListener('mousemove', show);    
-        document.body.appendChild(img);
+        // Instant removal on mouse touch
+        img.addEventListener('mouseenter', restorePage);
+        
+        // Append to HTML root to ensure visibility
+        document.documentElement.appendChild(img);
     }
 
-    function show() {
-        if (!state.isHidden) return;
-        state.isHidden = false;
-        
-        setTab('SAFE');
-        
-        // Match the ID exactly to ensure it is removed
-        const cover = document.getElementById("emergency-overlay");
-        if (cover) {
-            cover.remove();
-        }
-        
+    function restorePage() {
+        if (!isHidden) return;
+        isHidden = false;
+
+        document.title = originalTitle;
+        restoreIcons();
+
+        const img = document.getElementById('emergency-overlay');
+        if (img) img.remove();
+
         resetTimer();
     }
 
     function resetTimer() {
-        clearTimeout(state.idleTimer);
-        if (!state.isHidden) {
-            state.idleTimer = setTimeout(hide, CONFIG.idleTime);
+        clearTimeout(idleTimer);
+        if (!isHidden) {
+            idleTimer = setTimeout(hideEvidence, CONFIG.idleTime);
         }
     }
 
+    // Activity Listeners
+    ['mousedown', 'mousemove', 'keypress', 'scroll'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            if (isHidden) restorePage();
+            else resetTimer();
+        }, true);
+    });
+
+    // INSTANT SWITCH on Tab Change
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
-            hide();
+            hideEvidence(); // Switches to Google the millisecond you click away
         } else {
-            show();
+            restorePage();
         }
     });
 
-    // General activity listeners for keyboard or scrolling
-    ['keydown', 'scroll'].forEach(name => {
-        window.addEventListener(name, () => {
-            if (state.isHidden) show();
-            else resetTimer();
-        }, { capture: true, passive: true });
-    });
-
-    findIcon();
+    saveOriginalIcons();
     resetTimer();
 })();
