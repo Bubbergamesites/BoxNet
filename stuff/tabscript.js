@@ -3,7 +3,7 @@
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
         fakeImgUrl: window.location.origin + "/stuff/google.png", 
-        idleTime: 10000 
+        idleTime: 100000
     };
 
     let idleTimer;
