@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <script src="https://html-css-js.com/assets/jq/jq.js"></script>
+    <title>Bubber Physics Lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            line-height: 1;
+            font-family: Arial;
+            background: #fdfdfd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #wrapall {
+            text-align: center;
+            position: relative;
+        }
+
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+
+        .canvasControls {
+            width: 340px;
+            margin: 15px auto 0;
+        }
+
+        .canvasControls a {
+            display: inline-block;
+            background-color: #8a2be2;
+            text-align: center;
+            padding: 5px;
+            font-weight: bold;
+            color: #FFF;
+            height: 20px;
+            width: 20px;
+            min-width: 20px;
+            font-size: 20px;
+            border-radius: 10px;
+            line-height: 20px;
+            position: relative;
+            cursor: pointer;
+            border: 1px solid #7010B0;
+            box-shadow: -2px -2px 3px rgba(0, 0, 0, 0.2) inset;
+            text-decoration: none;
+            transition: transform 0.1s;
+        }
+
+        .canvasControls a:active {
+            transform: scale(0.9);
+        }
+
+        .canvasControls a:hover {
+            background-color: #9b30ff;
+        }
+
+        .canvasControls a#splitBlob,
+        .canvasControls a#joinBlob {
+            width: 40px;
+        }
+
+        .canvasControls a#gravityBlob {
+            margin-right: 20px;
+        }
+
+        #clickToPlay {
+            position: absolute;
+            background-color: rgba(138, 43, 226, 0.7);
+            top: 100px;
+            width: 100%;
+            font-size: 25px;
+            text-align: center;
+            padding: 10px 0;
+            color: #FFF;
+            font-weight: bold;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="wrapall">
+        <canvas id="blob" width="600" height="400"></canvas>
+        <div class="canvasControls">
+            <a id="splitBlob">oo</a>
+            <a id="joinBlob">↷↶</a>
+            <a id="gravityBlob">⤋</a>
+            <a id="leftArrow">←</a>
+            <a id="upArrow">↑</a>
+            <a id="downArrow">↓</a>
+            <a id="rightArrow">→</a>
+        </div>
+        <div id="clickToPlay">Click here to play with the Bubber</div>
+    </div>
+
+    <script>
+        function Vector(x, y) {
+            this.x = x;
+            this.y = y;
+            this.set = function(v) {
+                this.x = v.x;
+                this.y = v.y;
+            };
+            this.add = function(v) {
+                this.x += v.x;
+                this.y += v.y;
+            };
+            this.sub = function(v) {
+                this.x -= v.x;
+                this.y -= v.y;
+            };
+            this.dotProd = function(v) {
+                return this.x * v.x + this.y * v.y
+            };
+            this.length = function() {
+                return Math.sqrt(this.x * this.x + this.y * this.y)
+            };
+            this.scale = function(s) {
+                this.x *= s;
+                this.y *= s;
+            };
+        }
+
+        function Environment(x, y, w, h) {
+            this.left = x;
+            this.top = y;
+            this.right = x + w;
+            this.bottom = y + h;
+            this.collision = function(pos) {
+                var hit = false;
+                if (pos.x < this.left) {
+                    pos.x = this.left;
+                    hit = true;
+                } else if (pos.x > this.right) {
+                    pos.x = this.right;
+                    hit = true;
+                }
+                if (pos.y < this.top) {
+                    pos.y = this.top;
+                    hit = true;
+                } else if (pos.y > this.bottom) {
+                    pos.y = this.bottom;
+                    hit = true;
+                }
+                return hit;
+            };
+        }
+
+        function PointMass(x, y, mass) {
+            this.cur = new Vector(x, y);
+            this.prev = new Vector(x, y);
+            this.mass = mass;
+            this.force = new Vector(0, 0);
+            this.friction = 0.01;
+            this.move = function(dt) {
+                var dt2 = dt * dt,
+                    aX = this.force.x / this.mass,
+                    tempX = this.cur.x;
+                this.cur.x = (2 - this.friction) * tempX - (1 - this.friction) * this.prev.x + aX * dt2;
+                this.prev.x = tempX;
+                var aY = this.force.y / this.mass,
+                    tempY = this.cur.y;
+                this.cur.y = (2 - this.friction) * tempY - (1 - this.friction) * this.prev.y + aY * dt2;
+                this.prev.y = tempY;
+            };
+        }
+
+        function Joint(a, b, shortC, longC) {
+            this.a = a;
+            this.b = b;
+            var d = new Vector(b.cur.x - a.cur.x, b.cur.y - a.cur.y);
+            this.len = d.length();
+            this.shortConst = this.len * shortC;
+            this.longConst = this.len * longC;
+            this.scSquared = this.shortConst * this.shortConst;
+            this.lcSquared = this.longConst * this.longConst;
+            this.scale = function(s) {
+                this.shortConst *= s;
+                this.longConst *= s;
+                this.scSquared = this.shortConst * this.shortConst;
+                this.lcSquared = this.longConst * this.longConst;
+            };
+            this.sc = function() {
+                var d = new Vector(this.b.cur.x - this.a.cur.x, this.b.cur.y - this.a.cur.y);
+                var k = d.dotProd(d);
+                if (this.shortConst != 0 && k < this.scSquared) {
+                    var l = this.scSquared / (k + this.scSquared) - 0.5;
+                    d.scale(l);
+                    this.a.cur.sub(d);
+                    this.b.cur.add(d);
+                } else if (this.longConst != 0 && k > this.lcSquared) {
+                    var l = this.lcSquared / (k + this.lcSquared) - 0.5;
+                    d.scale(l);
+                    this.a.cur.sub(d);
+                    this.b.cur.add(d);
+                }
+            };
+        }
+
+        function Stick(a, b) {
+            this.a = a;
+            this.b = b;
+            var dx = a.cur.x - b.cur.x,
+                dy = a.cur.y - b.cur.y;
+            this.length = Math.sqrt(dx * dx + dy * dy);
+            this.lengthSq = this.length * this.length;
+            this.scale = function(s) {
+                this.length *= s;
+                this.lengthSq = this.length * this.length;
+            };
+            this.sc = function() {
+                var d = new Vector(this.b.cur.x - this.a.cur.x, this.b.cur.y - this.a.cur.y);
+                var k = d.dotProd(d),
+                    l = this.lengthSq / (k + this.lengthSq) - 0.5;
+                d.scale(l);
+                this.a.cur.sub(d);
+                this.b.cur.add(d);
+            };
+        }
+
+        function Blob(x, y, radius) {
+            this.pointMasses = [];
+            this.sticks = [];
+            this.joints = [];
+            this.radius = radius;
+            var num = 12;
+            for (var i = 0; i < num; i++) {
+                var ang = i * 2 * Math.PI / num;
+                this.pointMasses[i] = new PointMass(Math.cos(ang) * radius + x, Math.sin(ang) * radius + y, 1);
+            }
+            this.middle = new PointMass(x, y, 1.2);
+            for (var i = 0; i < num; i++) {
+                this.sticks[i] = new Stick(this.pointMasses[i], this.pointMasses[(i + 1) % num]);
+                this.joints.push(new Joint(this.pointMasses[i], this.pointMasses[(i + num / 2) % num], 0.98, 1.02));
+                this.joints.push(new Joint(this.pointMasses[i], this.middle, 0.95, 1.05));
+            }
+
+            this.draw = function(ctx, scale, gravity) {
+                ctx.fillStyle = '#8a2be2';
+                ctx.strokeStyle = '#7010B0';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                var p = this.pointMasses;
+                ctx.moveTo(p[0].cur.x * scale, p[0].cur.y * scale);
+                for (var i = 0; i < p.length; i++) {
+                    var n = p[(i + 1) % p.length];
+                    var xc = (p[i].cur.x + n.cur.x) / 2 * scale;
+                    var yc = (p[i].cur.y + n.cur.y) / 2 * scale;
+                    ctx.quadraticCurveTo(p[i].cur.x * scale, p[i].cur.y * scale, xc, yc);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // --- ROTATING FACE LOGIC ---
+                var mx = this.middle.cur.x * scale,
+                    my = this.middle.cur.y * scale;
+                var angle = Math.atan2(gravity.y, gravity.x);
+                // If gravity is zero, default to "down" (90 degrees)
+                if (gravity.x === 0 && gravity.y === 0) angle = Math.PI / 2;
+
+                ctx.save();
+                ctx.translate(mx, my);
+                ctx.rotate(angle - Math.PI / 2); // Adjust so face is upright relative to gravity
+
+                var fS = this.radius * scale * 0.17;
+                ctx.fillStyle = '#000';
+                // Eyes
+                ctx.beginPath();
+                ctx.arc(-fS * 1.5, -fS * 1.5, fS * 0.5, 0, 7);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(fS * 1.5, -fS * 1.5, fS * 0.5, 0, 7);
+                ctx.fill();
+                // Mouth
+                ctx.beginPath();
+                ctx.arc(0, 0, fS * 1.2, 0.2, Math.PI - 0.2);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = fS * 0.4;
+                ctx.stroke();
+                ctx.restore();
+            };
+        }
+
+        function BlobCollective(x, y, radius) {
+            this.blobs = [new Blob(x, y, radius)];
+            this.split = function() {
+                let target = this.blobs.reduce((prev, current) => (prev.radius > current.radius) ? prev : current);
+                if (target && target.radius > 0.15) {
+                    target.radius *= 0.7;
+                    target.sticks.forEach(s => s.scale(0.7));
+                    target.joints.forEach(j => j.scale(0.7));
+                    this.blobs.push(new Blob(target.middle.cur.x + 0.05, target.middle.cur.y + 0.05, target.radius));
+                }
+            };
+            this.join = function() {
+                if (this.blobs.length > 1) {
+                    var b1 = this.blobs.pop();
+                    var b2 = this.blobs[0];
+                    var newR = Math.sqrt(b1.radius * b1.radius + b2.radius * b2.radius);
+                    var f = newR / b2.radius;
+                    b2.radius = newR;
+                    b2.sticks.forEach(s => s.scale(f));
+                    b2.joints.forEach(j => j.scale(f));
+                }
+            };
+            this.applyInterBlobCollision = function() {
+                for (let i = 0; i < this.blobs.length; i++) {
+                    for (let j = i + 1; j < this.blobs.length; j++) {
+                        let b1 = this.blobs[i],
+                            b2 = this.blobs[j];
+                        let dx = b1.middle.cur.x - b2.middle.cur.x,
+                            dy = b1.middle.cur.y - b2.middle.cur.y;
+                        let dist = Math.sqrt(dx * dx + dy * dy),
+                            minDist = (b1.radius + b2.radius) * 1.05;
+                        if (dist < minDist) {
+                            let push = (minDist - dist) * 0.08;
+                            let ang = Math.atan2(dy, dx);
+                            b1.middle.cur.x += Math.cos(ang) * push;
+                            b1.middle.cur.y += Math.sin(ang) * push;
+                            b2.middle.cur.x -= Math.cos(ang) * push;
+                            b2.middle.cur.y -= Math.sin(ang) * push;
+                        }
+                    }
+                }
+            };
+        }
+
+        var env, blobColl, gravity, scale = 200;
+        var draggingBlob = null; // Stores the blob currently being dragged
+        var mousePos = new Vector(0, 0);
+
+        function init() {
+            env = new Environment(0.1, 0.1, 2.8, 1.8);
+            blobColl = new BlobCollective(1.5, 1, 0.4);
+            gravity = new Vector(0, 10);
+
+            $("#upArrow").click(() => {
+                gravity.x = 0;
+                gravity.y = -10;
+            });
+            $("#downArrow").click(() => {
+                gravity.x = 0;
+                gravity.y = 10;
+            });
+            $("#leftArrow").click(() => {
+                gravity.x = -10;
+                gravity.y = 0;
+            });
+            $("#rightArrow").click(() => {
+                gravity.x = 10;
+                gravity.y = 0;
+            });
+            $("#gravityBlob").click(() => {
+                if (gravity.x === 0 && gravity.y === 0) {
+                    gravity.x = 0;
+                    gravity.y = 10;
+                } else {
+                    gravity.x = 0;
+                    gravity.y = 0;
+                }
+            });
+            $("#splitBlob").click(() => blobColl.split());
+            $("#joinBlob").click(() => blobColl.join());
+            $(window).click(() => $("#clickToPlay").fadeOut());
+            requestAnimationFrame(run);
+            // --- Inside the init() function ---
+
+            // Update mouse position on move
+            $("#blob").mousemove((e) => {
+                var rect = e.target.getBoundingClientRect();
+                mousePos.x = (e.clientX - rect.left) / scale;
+                mousePos.y = (e.clientY - rect.top) / scale;
+
+                // If dragging, snap the blob center to the mouse
+                if (draggingBlob) {
+                    draggingBlob.middle.cur.set(mousePos);
+                    draggingBlob.middle.prev.set(mousePos); // Prevents "flinging" when let go
+                }
+            });
+
+            // Start dragging
+            $("#blob").mousedown((e) => {
+                // Find the closest blob to the click
+                let closest = null;
+                let minDist = 0.3; // Maximum grab distance
+
+                blobColl.blobs.forEach(b => {
+                    let dx = b.middle.cur.x - mousePos.x;
+                    let dy = b.middle.cur.y - mousePos.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closest = b;
+                    }
+                });
+
+                if (closest) draggingBlob = closest;
+            });
+
+            // Stop dragging
+            $(window).mouseup(() => {
+                draggingBlob = null;
+            });
+        }
+
+        function run() {
+            var ctx = document.getElementById('blob').getContext('2d');
+            ctx.clearRect(0, 0, 600, 400);
+            blobColl.applyInterBlobCollision();
+            blobColl.blobs.forEach(b => {
+                b.middle.force.set(gravity);
+                b.pointMasses.forEach(p => {
+                    p.force.set(gravity);
+                    p.move(0.05);
+                    if (env.collision(p.cur)) p.friction = 1.5;
+                    else p.friction = 0.01
+                });
+                b.middle.move(0.05);
+                env.collision(b.middle.cur);
+                for (var i = 0; i < 300; i++) { // Increased from 8 to 100
+                    b.sticks.forEach(s => s.sc());
+                    b.joints.forEach(j => j.sc());
+                }
+                b.draw(ctx, scale, gravity);
+            });
+            requestAnimationFrame(run);
+        }
+        $(document).ready(init);
+    </script>
+</body>
+
+</html>
