@@ -31,36 +31,30 @@
         document.head.appendChild(link);
     }
 
-    function hideEvidence() {
+     function hideEvidence() {
         if (isHidden) return;
-        isHidden = true;
         
         document.title = CONFIG.fakeTitle;
-        updateFavicon(CONFIG.fakeFavicon);
+        let favicon = document.querySelector("link[rel*='icon']");
+        if (favicon) favicon.href = CONFIG.fakeFavicon;
 
-        // We create a DIV container instead of just an IMG for better reliability
-        const overlay = document.createElement('div');
-        overlay.id = "fake-overlay";
-        overlay.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 2147483647 !important;
-            background-color: white !important; /* Fallback if image fails */
-            background-image: url('${CONFIG.fakeImgUrl}') !important;
-            background-size: cover !important;
-            background-position: center !important;
-            display: block !important;
-            cursor: none !important;
+        // Create the image overlay
+        const img = document.createElement('img');
+        img.id = "fake-overlay";
+        img.src = CONFIG.fakeImgUrl;
+        img.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 2147483647; /* Maximum possible z-index */
+            cursor: default;
         `;
         
-        // Instant removal on mouse touch
-        overlay.addEventListener('mouseenter', restorePage);
-        
-        // Append to the HTML tag to bypass any body loading issues
-        document.documentElement.appendChild(overlay);
+        document.body.appendChild(img);
+        isHidden = true;
     }
 
     function restorePage() {
