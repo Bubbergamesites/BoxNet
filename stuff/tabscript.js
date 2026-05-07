@@ -1,46 +1,74 @@
 (function() {
+    // --- CONFIGURATION ---
     const CONFIG = {
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
         fakeImgUrl: "/stuff/google.png", 
-        idleTime: 5000 
+        idleTime: 10000, // 10 seconds
+        
+        // Storage for original state
+        originalTitle: document.title,
+        originalIcons: [] 
     };
 
-    let state = {
-        isHidden: false,
-        idleTimer: null,
-        originalIcon: "",
-        originalTitle: document.title
-    };
+    let idleTimer;
+    let isHidden = false;
 
-    const findIcon = () => {
-        const link = document.querySelector("link[rel*='icon']");
-        state.originalIcon = link ? link.href : window.location.origin + "/favicon.ico";
-    };
-
-    function setTab(type) {
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-        const newLink = document.createElement('link');
-        newLink.rel = 'icon';
-
-        if (type === 'SAFE') {
-            document.title = state.originalTitle;
-            // Force browser to refresh favicon by adding a timestamp
-            newLink.href = state.originalIcon + "?v=" + Date.now();
-        } else {
-            document.title = CONFIG.fakeTitle;
-            newLink.href = CONFIG.fakeFavicon;
-        }
-        document.head.appendChild(newLink);
+    // Save all current favicons so we can restore them later
+    function saveOriginalIcons() {
+        const icons = document.querySelectorAll("link[rel*='icon']");
+        icons.forEach(icon => {
+            CONFIG.originalIcons.push({
+                rel: icon.rel,
+                href: icon.href,
+                sizes: icon.sizes.value,
+                type: icon.type
+            });
+        });
     }
 
-    function hide() {
-        if (state.isHidden) return;
-        state.isHidden = true;
-        setTab('FAKE');
+    // Completely replace all icon tags in the <head>
+    function updateAllIcons(newUrl, forceRefresh = false) {
+        // 1. Remove every existing icon tag
+        const existingIcons = document.querySelectorAll("link[rel*='icon']");
+        existingIcons.forEach(el => el.remove());
 
+        // 2. Create the new icon
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/x-icon';
+        
+        // Adding a timestamp ?v= forces the browser to refresh the cache
+        // This is critical for the "switch back" to work
+        link.href = newUrl + (forceRefresh ? "?v=" + Date.now() : "");
+        
+        document.getElementsByTagName('head')[0].appendChild(link);
+    }
+
+    function restoreOriginalIcons() {
+        const existingIcons = document.querySelectorAll("link[rel*='icon']");
+        existingIcons.forEach(el => el.remove());
+
+        CONFIG.originalIcons.forEach(iconData => {
+            const link = document.createElement('link');
+            link.rel = iconData.rel;
+            // Force browser to re-render original icon by adding a version tag
+            link.href = iconData.href + "?v=" + Date.now();
+            if (iconData.sizes) link.sizes = iconData.sizes;
+            if (iconData.type) link.type = iconData.type;
+            document.getElementsByTagName('head')[0].appendChild(link);
+        });
+    }
+
+    function hideEvidence() {
+        if (isHidden) return;
+        
+        document.title = CONFIG.fakeTitle;
+        updateAllIcons(CONFIG.fakeFavicon);
+
+        // Create the full-screen image overlay
         const img = document.createElement('img');
-        img.id = "emergency-overlay"; // Consistent ID
+        img.id = "emergency-overlay";
         img.src = CONFIG.fakeImgUrl;
         img.style.cssText = `
             position: fixed;
@@ -51,55 +79,54 @@
             object-fit: cover;
             z-index: 2147483647;
             background: white;
-            display: block;
-            cursor: none; /* Hides the mouse while the 'boss' image is up */
+            cursor: none; /* Optional: Hides mouse to look like a static image */
         `;
         
-        // Add specific listener to the image itself for instant removal
-        img.addEventListener('mouseenter', show);
-        img.addEventListener('mousemove', show);
-
+        // INSTANT TRIGGER: Restore the page as soon as mouse enters the frame
+        img.addEventListener('mouseenter', restorePage);
+        
         document.body.appendChild(img);
+        isHidden = true;
     }
 
-    function show() {
-        if (!state.isHidden) return;
-        state.isHidden = false;
-        
-        setTab('SAFE');
-        
-        // Match the ID exactly to ensure it is removed
-        const cover = document.getElementById("emergency-overlay");
-        if (cover) {
-            cover.remove();
-        }
-        
+    function restorePage() {
+        if (!isHidden) return;
+
+        document.title = CONFIG.originalTitle;
+        restoreOriginalIcons();
+
+        const img = document.getElementById('emergency-overlay');
+        if (img) img.remove();
+
+        isHidden = false;
         resetTimer();
     }
 
     function resetTimer() {
-        clearTimeout(state.idleTimer);
-        if (!state.isHidden) {
-            state.idleTimer = setTimeout(hide, CONFIG.idleTime);
+        clearTimeout(idleTimer);
+        if (!isHidden) {
+            idleTimer = setTimeout(hideEvidence, CONFIG.idleTime);
         }
     }
 
+    // Activity Listeners
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            if (isHidden) restorePage();
+            else resetTimer();
+        }, true);
+    });
+
+    // Tab Switch Listener - Automatically hide/show when tab changes
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
-            hide();
+            hideEvidence();
         } else {
-            show();
+            restorePage();
         }
     });
 
-    // General activity listeners for keyboard or scrolling
-    ['keydown', 'scroll'].forEach(name => {
-        window.addEventListener(name, () => {
-            if (state.isHidden) show();
-            else resetTimer();
-        }, { capture: true, passive: true });
-    });
-
-    findIcon();
+    // Initialize
+    saveOriginalIcons();
     resetTimer();
 })();
