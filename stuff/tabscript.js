@@ -79,7 +79,7 @@
     }
 
     // Only restore on actual input, not just "moving" back to the tab
-    ['mousedown', 'keydown', 'scroll'].forEach(evt => {
+    ['mousedown', 'mouseenter', 'keydown', 'scroll'].forEach(evt => {
         document.addEventListener(evt, () => {
             if (isHidden) restorePage();
             else resetTimer();
