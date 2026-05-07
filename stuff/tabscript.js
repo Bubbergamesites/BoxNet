@@ -1,9 +1,11 @@
 (function() {
+    console.log("Boss Key: Script Loaded");
+
     const CONFIG = {
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        fakeImgUrl: window.location.origin + "/stuff/google.png", 
-        idleTime: 100000,
+        fakeImgUrl: "stuff/google.png", // Try removing the leading slash
+        idleTime: 5000, // Reduced to 5s for faster testing
         panicKey: "Escape"
     };
 
@@ -12,51 +14,23 @@
     let originalTitle = document.title;
     let originalFavicon = "";
 
-    function init() {
-        const link = document.querySelector("link[rel*='icon']");
-        originalFavicon = link ? link.href : window.location.origin + "/favicon.ico";
-        resetTimer();
+    // Helper to find the favicon
+    function getFavicon() {
+        let link = document.querySelector("link[rel*='icon']");
+        return link ? link.href : "/favicon.ico";
     }
 
-    function updateFavicon(url) {
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        // Cache-buster ensures the icon actually changes
-        link.href = url + (url.includes('?') ? '&' : '?') + "v=" + Date.now();
-        document.head.appendChild(link);
+    function updateTab(title, iconUrl) {
+        document.title = title;
+        let link = document.querySelector("link[rel*='icon']");
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+        }
+        link.href = iconUrl + "?v=" + Date.now();
     }
 
-    function hideEvidence() {
-        if (isHidden) return;
-        isHidden = true;
-        
-        document.title = CONFIG.fakeTitle;
-        updateFavicon(CONFIG.fakeFavicon);
-
-        const overlay = document.createElement('div');
-        overlay.id = "fake-overlay";
-        overlay.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 2147483647 !important;
-            background-color: white !important;
-            background-image: url('${CONFIG.fakeImgUrl}') !important;
-            background-size: cover !important;
-            background-position: center !important;
-            background-repeat: no-repeat !important;
-            display: block !important;
-        `;
-        
-        // Use a click or mousemove to restore so it doesn't vanish instantly on tab-entry
-        overlay.addEventListener('mousedown', restorePage);
-        
-        document.documentElement.appendChild(overlay);
-    }
-    
     function hide() {
         if (isHidden) return;
         console.log("Boss Key: Hiding Evidence...");
@@ -94,27 +68,17 @@
         resetTimer();
     }
 
-    function restorePage() {
-        const overlay = document.getElementById('fake-overlay');
-        if (!overlay) {
-            isHidden = false;
-            return;
-        }
-
-        document.title = originalTitle;
-        updateFavicon(originalFavicon);
-
-        overlay.remove();
-        isHidden = false;
-        resetTimer();
-    }
-
     function resetTimer() {
         clearTimeout(idleTimer);
         if (!isHidden) {
-            idleTimer = setTimeout(hideEvidence, CONFIG.idleTime);
+            idleTimer = setTimeout(hide, CONFIG.idleTime);
         }
     }
+
+    // Capture the icon path on start
+    originalFavicon = getFavicon();
+
+    // Listen for the Panic Key
     window.addEventListener('keydown', (e) => {
         if (e.key === CONFIG.panicKey) {
             console.log("Boss Key: Panic Key Pressed");
@@ -123,22 +87,20 @@
             show();
         }
     }, true);
-    // Only restore on actual input, not just "moving" back to the tab
-    ['mousedown', 'mouseenter', 'keydown', 'scroll'].forEach(evt => {
-        document.addEventListener(evt, () => {
-            if (isHidden) restorePage();
+
+    // Listen for mouse movement/clicks
+    ['mousedown', 'mousemove', 'scroll'].forEach(evt => {
+        window.addEventListener(evt, () => {
+            if (isHidden) show();
             else resetTimer();
-        }, true);
+        }, {passive: true});
     });
 
-    // Handle Tab Switching without instant auto-restore
+    // Instant hide on tab switch
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-            hideEvidence();
-        } 
-        // We removed the "else restorePage()" here so it STAYS hidden 
-        // until you actually click or press a key.
+        if (document.hidden) hide();
     });
 
-    init();
+    resetTimer();
+    console.log("Boss Key: Timer Started (" + CONFIG.idleTime + "ms)");
 })();
