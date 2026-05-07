@@ -1,9 +1,7 @@
 (function() {
-    // --- CONFIGURATION ---
     const CONFIG = {
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        // Forces the path to be absolute to your current domain
         fakeImgUrl: window.location.origin + "/stuff/google.png", 
         idleTime: 10000 
     };
@@ -13,7 +11,6 @@
     let originalTitle = document.title;
     let originalIcons = [];
 
-    // Save all current favicons so we can restore them later
     function saveOriginalIcons() {
         const icons = document.querySelectorAll("link[rel*='icon']");
         icons.forEach(icon => {
@@ -26,12 +23,11 @@
         });
     }
 
-    function updateIcons(url, forceRefresh = false) {
+    function updateIcons(url) {
         document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
         const link = document.createElement('link');
         link.rel = 'icon';
-        // Cache-busting prevents the Google icon from "sticking"
-        link.href = url + (forceRefresh ? "?v=" + Date.now() : "");
+        link.href = url + "?v=" + Date.now();
         document.head.appendChild(link);
     }
 
@@ -40,7 +36,6 @@
         originalIcons.forEach(iconData => {
             const link = document.createElement('link');
             link.rel = iconData.rel;
-            // Force browser to re-render original icon
             link.href = iconData.href + "?v=" + Date.now();
             if (iconData.sizes) link.sizes = iconData.sizes;
             if (iconData.type) link.type = iconData.type;
@@ -49,13 +44,15 @@
     }
 
     function hideEvidence() {
+        // Kill any existing timer so they don't stack
+        clearTimeout(idleTimer);
+        
         if (isHidden) return;
         isHidden = true;
         
         document.title = CONFIG.fakeTitle;
         updateIcons(CONFIG.fakeFavicon);
 
-        // Create the image overlay
         const img = document.createElement('img');
         img.id = "emergency-overlay";
         img.src = CONFIG.fakeImgUrl;
@@ -71,24 +68,27 @@
             display: block !important;
         `;
         
-        // INSTANT removal on mouse enter
+        // Instant trigger on mouse touch
         img.addEventListener('mouseenter', restorePage);
         
-        // Append to documentElement (HTML root) to ensure it shows immediately
         document.documentElement.appendChild(img);
     }
 
     function restorePage() {
-        if (!isHidden) return;
-        isHidden = false;
+        // Force the check to be sure we are actually hidden
+        const img = document.getElementById('emergency-overlay');
+        
+        if (!isHidden && !img) return;
 
+        // Clean up
+        if (img) img.remove();
+        
         document.title = originalTitle;
         restoreIcons();
 
-        // Use the exact ID to remove the correct element
-        const img = document.getElementById('emergency-overlay');
-        if (img) img.remove();
-
+        isHidden = false;
+        
+        // CRITICAL: Restart the idle timer from scratch
         resetTimer();
     }
 
@@ -99,15 +99,17 @@
         }
     }
 
-    // Activity Listeners
+    // Capture activity and force a reset
     ['mousedown', 'mousemove', 'keypress', 'scroll'].forEach(evt => {
         document.addEventListener(evt, () => {
-            if (isHidden) restorePage();
-            else resetTimer();
+            if (isHidden) {
+                restorePage();
+            } else {
+                resetTimer();
+            }
         }, true);
     });
 
-    // Instant switch on Tab visibility change
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
             hideEvidence();
