@@ -3,7 +3,8 @@
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
         fakeImgUrl: window.location.origin + "/stuff/google.png", 
-        idleTime: 100000
+        idleTime: 100000,
+        panicKey: "Escape"
     };
 
     let idleTimer;
@@ -77,7 +78,17 @@
             idleTimer = setTimeout(hideEvidence, CONFIG.idleTime);
         }
     }
-
+    document.addEventListener('keydown', (e) => {
+        if (e.key === CONFIG.panicKey) {
+            // Toggle mode: Press Esc to hide, or press Esc to show
+            if (isHidden) restorePage();
+            else hideEvidence();
+        } else {
+            // Any other key resets the timer or restores the page
+            if (isHidden) restorePage();
+            else resetTimer();
+        }
+    }, true);
     // Only restore on actual input, not just "moving" back to the tab
     ['mousedown', 'mouseenter', 'keydown', 'scroll'].forEach(evt => {
         document.addEventListener(evt, () => {
