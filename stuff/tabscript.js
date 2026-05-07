@@ -2,7 +2,7 @@
     const CONFIG = {
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        // Using window.location.origin ensures the path is correct every time
+        // Absolute path to your image
         fakeImgUrl: window.location.origin + "/stuff/google.png", 
         idleTime: 10000 
     };
@@ -12,7 +12,10 @@
     let originalTitle = document.title;
     let originalFavicon = "";
 
-    // 1. Capture the true favicon path on startup
+    // Pre-load the image into the browser's memory immediately
+    const preLoadImg = new Image();
+    preLoadImg.src = CONFIG.fakeImgUrl;
+
     function init() {
         const link = document.querySelector("link[rel*='icon']");
         originalFavicon = link ? link.href : window.location.origin + "/favicon.ico";
@@ -23,7 +26,7 @@
         document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
         const link = document.createElement('link');
         link.rel = 'icon';
-        // The timestamp (?v=) forces the browser to actually change the tab icon
+        // Cache-buster to force the tab to update
         link.href = url + (url.includes('?') ? '&' : '?') + "v=" + Date.now();
         document.head.appendChild(link);
     }
@@ -35,37 +38,39 @@
         document.title = CONFIG.fakeTitle;
         updateFavicon(CONFIG.fakeFavicon);
 
-        const img = document.createElement('img');
-        img.id = "fake-overlay";
-        img.src = CONFIG.fakeImgUrl;
-        img.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            z-index: 2147483647; /* Maximum possible z-index */
-            cursor: default;
+        // We create a DIV container instead of just an IMG for better reliability
+        const overlay = document.createElement('div');
+        overlay.id = "fake-overlay";
+        overlay.style.cssText = `
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 2147483647 !important;
+            background-color: white !important; /* Fallback if image fails */
+            background-image: url('${CONFIG.fakeImgUrl}') !important;
+            background-size: cover !important;
+            background-position: center !important;
+            display: block !important;
+            cursor: none !important;
         `;
         
-        document.body.appendChild(img);
-        isHidden = true; 
-        img.addEventListener('mouseenter', restorePage);
+        // Instant removal on mouse touch
+        overlay.addEventListener('mouseenter', restorePage);
         
-        // Append to documentElement (HTML root) so it renders before the body is ready
-        document.documentElement.appendChild(img);
+        // Append to the HTML tag to bypass any body loading issues
+        document.documentElement.appendChild(overlay);
     }
 
     function restorePage() {
-        // Find the image specifically to ensure it is actually there
-        const img = document.getElementById('fake-overlay');
-        if (!isHidden && !img) return;
+        const overlay = document.getElementById('fake-overlay');
+        if (!isHidden && !overlay) return;
 
         document.title = originalTitle;
         updateFavicon(originalFavicon);
 
-        if (img) img.remove();
+        if (overlay) overlay.remove();
 
         isHidden = false;
         resetTimer();
@@ -78,7 +83,6 @@
         }
     }
 
-    // Activity Listeners
     ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
         document.addEventListener(evt, () => {
             if (isHidden) restorePage();
@@ -86,10 +90,9 @@
         }, true);
     });
 
-    // Instant switch when the user leaves the tab
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) hideEvidence();
-        else restorePage(); // Switches back instantly on return
+        else restorePage();
     });
 
     init();
