@@ -1,12 +1,13 @@
 (function() {
-    console.log("Boss Key: Script Loaded");
-
+    // 1. FETCH SAVED PREFERENCES
+    const saved = JSON.parse(localStorage.getItem('boxnet_prefs')) || {};
+    
     const CONFIG = {
-        fakeTitle: "Google",
+        fakeTitle: saved.title || "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        fakeImgUrl: "https://boxnetgames.pages.dev/stuff/google.png", // Try removing the leading slash
-        idleTime: 50000, // Reduced to 5s for faster testing
-        panicKey: "Escape"
+        fakeImgUrl: "/stuff/google.png", 
+        idleTime: parseInt(saved.timer) || 10000, // Uses your custom MS
+        panicKey: saved.key || "Escape"          // Uses your custom Key
     };
 
     let idleTimer;
@@ -14,93 +15,111 @@
     let originalTitle = document.title;
     let originalFavicon = "";
 
-    // Helper to find the favicon
-    function getFavicon() {
-        let link = document.querySelector("link[rel*='icon']");
-        return link ? link.href : "/favicon.ico";
+    // 2. CAPTURE ORIGINAL STATE
+    function init() {
+        const link = document.querySelector("link[rel*='icon']");
+        originalFavicon = link ? link.href : window.location.origin + "/favicon.ico";
+        resetTimer();
+        
+        // Setup Key Listener for the Manifest Input
+        const keyBox = document.getElementById('pref-key');
+        if (keyBox) {
+            keyBox.addEventListener('keydown', function(e) {
+                e.preventDefault();
+                this.value = e.key;
+            });
+        }
     }
 
+    // 3. TAB MANIPULATION
     function updateTab(title, iconUrl) {
         document.title = title;
-        let link = document.querySelector("link[rel*='icon']");
-        if (!link) {
-            link = document.createElement('link');
-            link.rel = 'icon';
-            document.head.appendChild(link);
-        }
-        link.href = iconUrl + "?v=" + Date.now();
+        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.href = iconUrl + (iconUrl.includes('?') ? '&' : '?') + "v=" + Date.now();
+        document.head.appendChild(link);
     }
 
-    function hide() {
+    // 4. CLOAK LOGIC
+    function hideEvidence() {
         if (isHidden) return;
-        console.log("Boss Key: Hiding Evidence...");
         isHidden = true;
         
         updateTab(CONFIG.fakeTitle, CONFIG.fakeFavicon);
 
         const overlay = document.createElement('div');
-        overlay.id = "boss-overlay";
+        overlay.id = "emergency-overlay";
         overlay.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 2147483647 !important;
-            background: white url('${CONFIG.fakeImgUrl}') no-repeat center center / cover !important;
-            display: block !important;
+            position: fixed !important; top: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            z-index: 2147483647 !important; background-color: white !important;
+            background-image: url('${CONFIG.fakeImgUrl}') !important;
+            background-size: cover !important; background-position: center !important;
+            display: block !important; cursor: none !important;
         `;
         
-        // Use documentElement to ensure it stays above the body
+        overlay.addEventListener('mouseenter', restorePage);
         document.documentElement.appendChild(overlay);
     }
 
-    function show() {
-        if (!isHidden) return;
-        console.log("Boss Key: Restoring Page...");
-        isHidden = false;
-        
+    function restorePage() {
+        const overlay = document.getElementById('emergency-overlay');
+        if (!overlay && !isHidden) return;
+
         updateTab(originalTitle, originalFavicon);
-        
-        const overlay = document.getElementById("boss-overlay");
         if (overlay) overlay.remove();
         
+        isHidden = false;
         resetTimer();
     }
 
     function resetTimer() {
         clearTimeout(idleTimer);
         if (!isHidden) {
-            idleTimer = setTimeout(hide, CONFIG.idleTime);
+            idleTimer = setTimeout(hideEvidence, CONFIG.idleTime);
         }
     }
 
-    // Capture the icon path on start
-    originalFavicon = getFavicon();
+    // 5. GLOBAL UI FUNCTIONS (For your HTML buttons)
+    window.toggleManifest = function() {
+        const overlay = document.getElementById('manifest-overlay');
+        if (overlay) {
+            overlay.style.display = (overlay.style.display === 'none') ? 'flex' : 'none';
+        }
+    };
 
-    // Listen for the Panic Key
+    window.saveSettings = function() {
+        const settings = {
+            timer: document.getElementById('pref-timer').value,
+            key: document.getElementById('pref-key').value || "Escape",
+            title: document.getElementById('pref-title').value
+        };
+        localStorage.setItem('boxnet_prefs', JSON.stringify(settings));
+        location.reload(); // Refresh to apply new CONFIG
+    };
+
+    // 6. EVENT LISTENERS
     window.addEventListener('keydown', (e) => {
         if (e.key === CONFIG.panicKey) {
-            console.log("Boss Key: Panic Key Pressed");
-            isHidden ? show() : hide();
+            e.preventDefault();
+            isHidden ? restorePage() : hideEvidence();
         } else {
-            show();
+            if (isHidden) restorePage();
+            else resetTimer();
         }
     }, true);
 
-    // Listen for mouse movement/clicks
-    ['mousedown', 'mousemove', 'scroll'].forEach(evt => {
+    ['mousedown', 'scroll', 'touchstart'].forEach(evt => {
         window.addEventListener(evt, () => {
-            if (isHidden) show();
+            if (isHidden) restorePage();
             else resetTimer();
         }, {passive: true});
     });
 
-    // Instant hide on tab switch
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden) hide();
+        if (document.hidden) hideEvidence();
     });
 
-    resetTimer();
-    console.log("Boss Key: Timer Started (" + CONFIG.idleTime + "ms)");
+    init();
 })();
