@@ -4,7 +4,7 @@
     const CONFIG = {
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        fakeImgUrl: "stuff/google.png", // Try removing the leading slash
+        fakeImgUrl: window.location.origin + "stuff/google.png", // Try removing the leading slash
         idleTime: 50000, // Reduced to 5s for faster testing
         panicKey: "Escape"
     };
