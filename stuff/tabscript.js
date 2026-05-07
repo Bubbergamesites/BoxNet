@@ -80,14 +80,12 @@
     }
     window.addEventListener('keydown', (e) => {
         if (e.key === CONFIG.panicKey) {
-            e.preventDefault(); // Prevents Esc from stopping page load
-            if (isHidden) restorePage();
-            else hideEvidence();
+            console.log("Boss Key: Panic Key Pressed");
+            isHidden ? show() : hide();
         } else {
-            if (isHidden) restorePage();
-            else resetTimer();
+            show();
         }
-    }
+    }, true);
     // Only restore on actual input, not just "moving" back to the tab
     ['mousedown', 'mouseenter', 'keydown', 'scroll'].forEach(evt => {
         document.addEventListener(evt, () => {
