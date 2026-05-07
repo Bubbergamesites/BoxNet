@@ -6,8 +6,9 @@
         fakeTitle: saved.title || "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
         fakeImgUrl: "/stuff/google.png", 
-        idleTime: parseInt(saved.timer) || 10000, // Uses your custom MS
-        panicKey: saved.key || "Escape"          // Uses your custom Key
+        // Force minimum 3000ms (3 seconds)
+        idleTime: Math.max(parseInt(saved.timer) || 10000, 3000), 
+        panicKey: saved.key || "Escape"
     };
 
     let idleTimer;
@@ -15,13 +16,11 @@
     let originalTitle = document.title;
     let originalFavicon = "";
 
-    // 2. CAPTURE ORIGINAL STATE
     function init() {
         const link = document.querySelector("link[rel*='icon']");
         originalFavicon = link ? link.href : window.location.origin + "/favicon.ico";
         resetTimer();
         
-        // Setup Key Listener for the Manifest Input
         const keyBox = document.getElementById('pref-key');
         if (keyBox) {
             keyBox.addEventListener('keydown', function(e) {
@@ -31,7 +30,6 @@
         }
     }
 
-    // 3. TAB MANIPULATION
     function updateTab(title, iconUrl) {
         document.title = title;
         document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
@@ -41,7 +39,6 @@
         document.head.appendChild(link);
     }
 
-    // 4. CLOAK LOGIC
     function hideEvidence() {
         if (isHidden) return;
         isHidden = true;
@@ -81,7 +78,6 @@
         }
     }
 
-    // 5. GLOBAL UI FUNCTIONS (For your HTML buttons)
     window.toggleManifest = function() {
         const overlay = document.getElementById('manifest-overlay');
         if (overlay) {
@@ -90,17 +86,29 @@
     };
 
     window.saveSettings = function() {
+        let timerVal = parseInt(document.getElementById('pref-timer').value);
+        
+        // Validation: Minimum 3 seconds (3000ms)
+        if (timerVal < 3000) timerVal = 3000;
+
         const settings = {
-            timer: document.getElementById('pref-timer').value,
+            timer: timerVal,
             key: document.getElementById('pref-key').value || "Escape",
             title: document.getElementById('pref-title').value
         };
         localStorage.setItem('boxnet_prefs', JSON.stringify(settings));
-        location.reload(); // Refresh to apply new CONFIG
+        location.reload();
     };
 
-    // 6. EVENT LISTENERS
+    // 6. MODIFIED KEY LISTENER
     window.addEventListener('keydown', (e) => {
+        const manifestOverlay = document.getElementById('manifest-overlay');
+        // Check if the manifest settings page is currently visible
+        const isManifestOpen = manifestOverlay && manifestOverlay.style.display !== 'none';
+
+        // Ignore Panic Key if the Settings Manifest is open
+        if (isManifestOpen) return;
+
         if (e.key === CONFIG.panicKey) {
             e.preventDefault();
             isHidden ? restorePage() : hideEvidence();
