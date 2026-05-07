@@ -56,6 +56,43 @@
         
         document.documentElement.appendChild(overlay);
     }
+    
+    function hide() {
+        if (isHidden) return;
+        console.log("Boss Key: Hiding Evidence...");
+        isHidden = true;
+        
+        updateTab(CONFIG.fakeTitle, CONFIG.fakeFavicon);
+
+        const overlay = document.createElement('div');
+        overlay.id = "boss-overlay";
+        overlay.style.cssText = `
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 2147483647 !important;
+            background: white url('${CONFIG.fakeImgUrl}') no-repeat center center / cover !important;
+            display: block !important;
+        `;
+        
+        // Use documentElement to ensure it stays above the body
+        document.documentElement.appendChild(overlay);
+    }
+
+    function show() {
+        if (!isHidden) return;
+        console.log("Boss Key: Restoring Page...");
+        isHidden = false;
+        
+        updateTab(originalTitle, originalFavicon);
+        
+        const overlay = document.getElementById("boss-overlay");
+        if (overlay) overlay.remove();
+        
+        resetTimer();
+    }
 
     function restorePage() {
         const overlay = document.getElementById('fake-overlay');
