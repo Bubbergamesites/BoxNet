@@ -19,7 +19,7 @@
         body {
             background-color: #251d16;
             /* Wood floor / Warehouse floor texture */
-            background-image: repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(0,0,0,0.1) 50px, rgba(0,0,0,0.1) 51px);
+            background-image: repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(0, 0, 0, 0.1) 50px, rgba(0, 0, 0, 0.1) 51px);
             color: var(--ink);
             font-family: 'Courier Prime', monospace;
             display: flex;
@@ -37,7 +37,7 @@
             max-width: 900px;
             padding: 60px 40px;
             position: relative;
-            box-shadow: 30px 30px 0px rgba(0,0,0,0.4);
+            box-shadow: 30px 30px 0px rgba(0, 0, 0, 0.4);
             border: 2px solid var(--cardboard-dark);
             /* Rough cut cardboard effect */
             clip-path: polygon(0% 2%, 100% 0%, 99% 98%, 1% 100%);
@@ -52,8 +52,8 @@
             width: 60px;
             height: 100%;
             background: var(--tape-clear);
-            border-left: 1px solid rgba(255,255,255,0.3);
-            border-right: 1px solid rgba(255,255,255,0.3);
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
             z-index: 10;
             pointer-events: none;
         }
@@ -81,7 +81,7 @@
             padding: 5px 15px;
             margin-top: 15px;
             transform: rotate(-2deg);
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
         }
 
         /* Navigation as Labels */
@@ -103,7 +103,7 @@
             align-items: center;
             border: 1px solid #ccc;
             transition: all 0.2s ease;
-            box-shadow: 5px 5px 0px rgba(0,0,0,0.1);
+            box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.1);
             position: relative;
         }
 
@@ -126,7 +126,8 @@
         .icon {
             font-size: 3rem;
             margin-bottom: 10px;
-            filter: grayscale(1); /* Keeps it looking like ink printing */
+            filter: grayscale(1);
+            /* Keeps it looking like ink printing */
         }
 
         .nav-card span {
@@ -159,6 +160,62 @@
             transform: rotate(-15deg);
             pointer-events: none;
         }
+
+        #manifest-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            /* Dims the warehouse floor */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(3px);
+        }
+
+        .manifest-label {
+            background-color: var(--label-white);
+            color: var(--ink);
+            border: 1px solid #ccc;
+            width: 320px;
+            padding: 0;
+            box-shadow: 15px 15px 0px rgba(0, 0, 0, 0.5);
+            transform: rotate(-1deg);
+        }
+
+        /* Re-using your existing manifest styles... */
+        .manifest-header {
+            border-bottom: 2px solid var(--ink);
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .manifest-body {
+            padding: 20px;
+        }
+
+        .input-row {
+            margin-bottom: 15px;
+        }
+
+        .input-row label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .input-row input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--ink);
+            padding: 8px;
+            font-family: 'Courier Prime', monospace;
+        }
     </style>
 </head>
 
@@ -166,7 +223,7 @@
 
     <div class="box-container">
         <div class="stamp">INSPECTED BY BN-7</div>
-        
+
         <header>
             <h1>BoxNet</h1>
             <p class="tagline">FRAGILE: HANDLE WITH ENTERTAINMENT</p>
@@ -194,13 +251,71 @@
             </a>
         </main>
 
+
         <footer>
+            <button onclick="toggleManifest()">
+                <span>CONFIG</span>
+            </button>
             <div class="barcode">|| |||| || | ||| || ||| |</div>
             <p style="font-size: 10px; font-weight: bold;">MANIFEST: 4920-BOX-NET-2024</p>
             <p style="font-size: 12px; margin-top: 10px; opacity: 0.6;">EST. 2024 &bull; BOXNET LOGISTICS</p>
         </footer>
     </div>
 
+    <div id="manifest-overlay" style="display: none;">
+        <div class="manifest-label">
+            <div class="manifest-header">
+                <div class="manifest-title">SHIPPING MANIFEST</div>
+                <button onclick="toggleManifest()" style="background:none; border:none; cursor:pointer; font-weight:bold;">[X]</button>
+            </div>
+            <div class="manifest-body">
+                <div class="input-row">
+                    <label>CLOAK_TIMER (MS)</label>
+                    <input type="number" id="pref-timer" value="10000">
+                </div>
+                <div class="input-row">
+                    <label>PANIC_KEY</label>
+                    <input type="text" id="pref-key" placeholder="TAP KEY..." readonly>
+                </div>
+                <div class="input-row">
+                    <label>FAKE_TITLE</label>
+                    <input type="text" id="pref-title" value="Google">
+                </div>
+                <button onclick="saveSettings()" class="manifest-btn">AUTHORIZE CHANGES</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function toggleManifest() {
+            const overlay = document.getElementById('manifest-overlay');
+            if (overlay.style.display === 'none') {
+                overlay.style.display = 'flex';
+            } else {
+                overlay.style.display = 'none';
+            }
+        }
+
+        // Logic for capturing the Panic Key
+        const keyBox = document.getElementById('pref-key');
+        if (keyBox) {
+            keyBox.addEventListener('keydown', function(e) {
+                e.preventDefault();
+                this.value = e.key;
+            });
+        }
+
+        // Save logic
+        function saveSettings() {
+            const settings = {
+                timer: document.getElementById('pref-timer').value,
+                key: document.getElementById('pref-key').value || "Escape",
+                title: document.getElementById('pref-title').value
+            };
+            localStorage.setItem('boxnet_prefs', JSON.stringify(settings));
+            location.reload();
+        }
+    </script>
 </body>
 <script src="/stuff/tabscript.js"></script>
+
 </html>
