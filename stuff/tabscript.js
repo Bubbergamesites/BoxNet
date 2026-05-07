@@ -1,94 +1,54 @@
 (function() {
     const CONFIG = {
+        originalTitle: document.title,
+        originalFavicon: "/favicon.ico",
         fakeTitle: "Google",
         fakeFavicon: "https://www.google.com/favicon.ico",
-        fakeImgUrl: window.location.origin + "/stuff/google.png", 
+        // Use a high-res screenshot of Google or a "Work" app
+        fakeImgUrl: "/stuff/google.png", 
         idleTime: 10000 
     };
 
     let idleTimer;
     let isHidden = false;
-    let originalTitle = document.title;
-    let originalIcons = [];
-
-    function saveOriginalIcons() {
-        const icons = document.querySelectorAll("link[rel*='icon']");
-        icons.forEach(icon => {
-            originalIcons.push({
-                rel: icon.rel,
-                href: icon.href,
-                sizes: icon.sizes.value,
-                type: icon.type
-            });
-        });
-    }
-
-    function updateIcons(url) {
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.href = url + "?v=" + Date.now();
-        document.head.appendChild(link);
-    }
-
-    function restoreIcons() {
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-        originalIcons.forEach(iconData => {
-            const link = document.createElement('link');
-            link.rel = iconData.rel;
-            link.href = iconData.href + "?v=" + Date.now();
-            if (iconData.sizes) link.sizes = iconData.sizes;
-            if (iconData.type) link.type = iconData.type;
-            document.head.appendChild(link);
-        });
-    }
 
     function hideEvidence() {
-        // Kill any existing timer so they don't stack
-        clearTimeout(idleTimer);
-        
         if (isHidden) return;
-        isHidden = true;
         
         document.title = CONFIG.fakeTitle;
-        updateIcons(CONFIG.fakeFavicon);
+        let favicon = document.querySelector("link[rel*='icon']");
+        if (favicon) favicon.href = CONFIG.fakeFavicon;
 
+        // Create the image overlay
         const img = document.createElement('img');
-        img.id = "emergency-overlay";
+        img.id = "fake-overlay";
         img.src = CONFIG.fakeImgUrl;
         img.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            object-fit: cover !important;
-            z-index: 2147483647 !important;
-            background: white !important;
-            display: block !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 2147483647; /* Maximum possible z-index */
+            cursor: default;
         `;
         
-        // Instant trigger on mouse touch
-        img.addEventListener('mouseenter', restorePage);
-        
-        document.documentElement.appendChild(img);
+        document.body.appendChild(img);
+        isHidden = true;
     }
 
     function restorePage() {
-        // Force the check to be sure we are actually hidden
-        const img = document.getElementById('emergency-overlay');
-        
-        if (!isHidden && !img) return;
+        if (!isHidden) return;
 
-        // Clean up
+        document.title = CONFIG.originalTitle;
+        let favicon = document.querySelector("link[rel*='icon']");
+        if (favicon) favicon.href = CONFIG.originalFavicon;
+
+        const img = document.getElementById('fake-overlay');
         if (img) img.remove();
-        
-        document.title = originalTitle;
-        restoreIcons();
 
         isHidden = false;
-        
-        // CRITICAL: Restart the idle timer from scratch
         resetTimer();
     }
 
@@ -99,25 +59,16 @@
         }
     }
 
-    // Capture activity and force a reset
-    ['mousedown', 'mousemove', 'keypress', 'scroll'].forEach(evt => {
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
         document.addEventListener(evt, () => {
-            if (isHidden) {
-                restorePage();
-            } else {
-                resetTimer();
-            }
+            if (isHidden) restorePage();
+            else resetTimer();
         }, true);
     });
 
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-            hideEvidence();
-        } else {
-            restorePage();
-        }
+        if (document.hidden) hideEvidence();
     });
 
-    saveOriginalIcons();
     resetTimer();
 })();
