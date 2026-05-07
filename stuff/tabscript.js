@@ -43,16 +43,15 @@
         img.id = "emergency-overlay"; // Consistent ID
         img.src = CONFIG.fakeImgUrl;
         img.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            z-index: 2147483647;
-            background: white;
-            display: block;
-            cursor: none; /* Hides the mouse while the 'boss' image is up */
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: cover !important;
+            z-index: 2147483647 !important;
+            background: white !important;
+            display: block !important;
         `;
         
         // Add specific listener to the image itself for instant removal
