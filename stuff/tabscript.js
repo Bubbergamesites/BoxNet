@@ -15,10 +15,20 @@
     function hideEvidence() {
         if (isHidden) return;
         
-        document.title = CONFIG.fakeTitle;
-        let favicon = document.querySelector("link[rel*='icon']");
-        if (favicon) favicon.href = CONFIG.fakeFavicon;
+        clearInterval(state.lockInterval);
 
+        if (isHidden) {
+            // THE LOCK: Overwrite the title and icon 10 times a second
+            state.lockInterval = setInterval(() => {
+                document.title = CONFIG.fakeTitle;
+                
+                // Nuclear icon swap
+                document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+                const link = document.createElement('link');
+                link.rel = 'icon';
+                link.href = CONFIG.fakeFavicon + "?v=" + Date.now();
+                document.head.appendChild(link);
+            }, 100);
         // Create the image overlay
         const img = document.createElement('img');
         img.id = "fake-overlay";
