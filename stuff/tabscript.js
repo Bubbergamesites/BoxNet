@@ -39,18 +39,18 @@
         img.id = "fake-overlay";
         img.src = CONFIG.fakeImgUrl;
         img.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            object-fit: cover !important;
-            z-index: 2147483647 !important;
-            background: white !important;
-            display: block !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 2147483647; /* Maximum possible z-index */
+            cursor: default;
         `;
         
-        // Instant removal when the mouse enters the frame
+        document.body.appendChild(img);
+        isHidden = true; 
         img.addEventListener('mouseenter', restorePage);
         
         // Append to documentElement (HTML root) so it renders before the body is ready
