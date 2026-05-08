@@ -7,7 +7,7 @@
         fakeFavicon: "https://www.google.com/favicon.ico",
         fakeImgUrl: "/stuff/google.png", 
         // Force minimum 3000ms (3 seconds)
-        idleTime: Math.max(parseInt(saved.timer) || 10000, 3000), 
+        idleTime: Math.max(parseInt(saved.timer) || 10000000, 3000), 
         panicKey: saved.key || "Escape"
     };
 
