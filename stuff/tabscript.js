@@ -1,6 +1,11 @@
 (function() {
     // 1. FETCH SAVED PREFERENCES
     const saved = JSON.parse(localStorage.getItem('boxnet_prefs')) || {};
+   
+    if (saved.active === false) {
+        console.log("BOXNET: Cloak System Offline (Disabled by User)");
+        return; 
+    }
     
     const CONFIG = {
         fakeTitle: saved.title || "Google",
