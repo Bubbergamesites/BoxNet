@@ -281,6 +281,10 @@
                     <label>FAKE_TITLE</label>
                     <input type="text" id="pref-title" value="Google">
                 </div>
+                <div class="input-row" style="display: flex; align-items: center; gap: 10px; margin-top: 15px; border-top: 1px solid rgba(61, 43, 31, 0.2); padding-top: 10px;">
+                    <label style="margin: 0;">SYSTEM_ACTIVE</label>
+                    <input type="checkbox" id="pref-active" style="width: 20px; height: 20px; cursor: pointer;">
+                </div>
                 <button onclick="saveSettings()" class="manifest-btn">AUTHORIZE CHANGES</button>
             </div>
         </div>
@@ -306,10 +310,14 @@
 
         // Save logic
         function saveSettings() {
+            let timerVal = parseInt(document.getElementById('pref-timer').value);
+            if (timerVal < 3000) timerVal = 3000;
+
             const settings = {
-                timer: document.getElementById('pref-timer').value,
+                timer: timerVal,
                 key: document.getElementById('pref-key').value || "Escape",
-                title: document.getElementById('pref-title').value
+                title: document.getElementById('pref-title').value,
+                active: document.getElementById('pref-active').checked // Saves the switch state
             };
             localStorage.setItem('boxnet_prefs', JSON.stringify(settings));
             location.reload();
