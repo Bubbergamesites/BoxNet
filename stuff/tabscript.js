@@ -37,7 +37,6 @@
             active: document.getElementById('pref-active').checked
         };
         localStorage.setItem('boxnet_prefs', JSON.stringify(settings));
-        alert("Configuration Authorized. Rebooting...");
         location.reload();
     };
 
